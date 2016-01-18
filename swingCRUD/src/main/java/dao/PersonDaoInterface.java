@@ -1,9 +1,9 @@
-package DAO;
+package dao;
 
 import java.io.Serializable;
 import java.util.List;
 
-public interface PersonDAOInterface<T, Id extends Serializable> {
+public interface PersonDaoInterface<T, Id extends Serializable> {
 
 	public void persist(T entity);
 	

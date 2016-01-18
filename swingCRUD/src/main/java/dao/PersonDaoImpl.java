@@ -1,4 +1,4 @@
-package DAO;
+package dao;
 
 import java.util.List;
 
@@ -10,13 +10,13 @@ import org.hibernate.cfg.Configuration;
 
 import model.Person;
 
-public class PersonDAO implements PersonDAOInterface<Person, Integer> {
+public class PersonDaoImpl implements PersonDaoInterface<Person, Integer> {
 
 	private Session currentSession;
 	
 	private Transaction currentTransaction;
 
-	public PersonDAO() {
+	public PersonDaoImpl() {
 	}
 
 	public Session openCurrentSession() {

@@ -2,15 +2,15 @@ package service;
 
 import java.util.List;
 
-import DAO.PersonDAO;
+import dao.PersonDaoImpl;
 import model.Person;
 
 public class PersonService {
 
-	private static PersonDAO personDao;
+	private static PersonDaoImpl personDao;
 
 	public PersonService() {
-		personDao = new PersonDAO();
+		personDao = new PersonDaoImpl();
 	}
 
 	public void persist(Person entity) {
@@ -52,7 +52,7 @@ public class PersonService {
 		personDao.closeCurrentSessionwithTransaction();
 	}
 
-	public PersonDAO personDao() {
+	public PersonDaoImpl personDao() {
 		return personDao;
 	}
 
