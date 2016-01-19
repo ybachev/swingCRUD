@@ -1,5 +1,6 @@
 package model;
 
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import javax.persistence.Column;
@@ -77,11 +78,15 @@ public class Person {
 	public void setBirthDate(Date birthDate) {
 		this.birthDate = birthDate;
 	}
+	
+	public String BirthDateFormated() {
+		return new SimpleDateFormat("yyyy-MM-dd").format(birthDate);
+	}
 
 	@Override
 	public String toString() {
-		return "Person [id=" + id + ", firstName=" + firstName + ", lastName=" + lastName + ", middleName=" + middleName
-				+ ", birthDate=" + birthDate + "]";
+		return "Person [id=" + id + ", firstName=" + getFirstName() + ", lastName=" + getLastName() + ", middleName=" + getMiddleName()
+				+ ", birthDate=" + BirthDateFormated() + "]";
 	}
 
 }
