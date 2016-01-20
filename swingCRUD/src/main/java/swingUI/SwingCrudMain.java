@@ -10,8 +10,11 @@ import java.awt.Dialog.ModalityType;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
+import javax.swing.AbstractAction;
+import javax.swing.Action;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
@@ -23,9 +26,13 @@ import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.event.TableModelEvent;
+import javax.swing.event.TableModelListener;
+import javax.swing.table.DefaultTableModel;
 
 import model.Person;
 import service.PersonService;
+import swingUI.TableCellListener;
 
 public class SwingCrudMain extends JPanel {
 	private static final long serialVersionUID = -9065552749619842231L;
@@ -54,7 +61,6 @@ public class SwingCrudMain extends JPanel {
 	}
 
 	private List<String> columnNames = Arrays.asList("Id", "First Name", "Last Name", "Middle Name", "Date of Birth");
-
 
 	private JButton button;
 	private JTable table;
@@ -154,11 +160,12 @@ public class SwingCrudMain extends JPanel {
 
 			}
 		}
-		dialog.setVisible(true); 
+		dialog.setVisible(true);
 		// here the modal dialog takes over
 
 		field.setText(dialogPanel.getFieldText());
 		dialog = null;
+		personTableModel.fireTableDataChanged();
 	}
 
 	public Person getSelectedPerson() {
@@ -168,7 +175,7 @@ public class SwingCrudMain extends JPanel {
 	public void setSelectedPerson(Person selectedPerson) {
 		this.selectedPerson = selectedPerson;
 	}
-	
+
 	public List<String> getColumnNames() {
 		return columnNames;
 	}
@@ -178,15 +185,17 @@ class MyDialogPanel extends JPanel {
 	private static final long serialVersionUID = -7108948839202922735L;
 
 	private SwingCrudMain mainPanel;
-	private JTextField field = new JTextField(10);
+	private JTextField field = new JTextField();
 	private JTable editPersonTable;
 	private PersonTableModel personModel;
+	DefaultTableModel model;
 	private Person personToEdit;
 
-
 	private JButton okButton = new JButton("OK");
+	private JButton cancelButton = new JButton("Cancel");
 
-	public MyDialogPanel() {}
+	public MyDialogPanel() {
+	}
 
 	public MyDialogPanel(SwingCrudMain mainPanel) {
 		super();
@@ -196,18 +205,85 @@ class MyDialogPanel extends JPanel {
 				okButtonAction();
 			}
 		});
-		
+
+		cancelButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				cancelButtonAction();
+			}
+		});
+
 		personToEdit = mainPanel.getSelectedPerson();
 		if (personToEdit != null) {
-			personModel = new PersonTableModel(Arrays.asList(personToEdit), mainPanel.getColumnNames());
-			//setLayout(new GridBagLayout());
-			editPersonTable = new JTable(personModel);
+			// override model - editable = true
+			// personModel = new EditTableModel(Arrays.asList(personToEdit),
+			// mainPanel.getColumnNames());
+			/*
+			 * { private static final long serialVersionUID =
+			 * -9022588423527915638L;
+			 * 
+			 * @Override public boolean isCellEditable(int rowIndex, int
+			 * columnIndex) { return true; } };
+			 */
+			String[] columnNames = { "Id", "First Name", "Last Name", "Middle Name", "Date of Birth" };
+			Object[][] data = { { personToEdit.getId(), personToEdit.getFirstName(), personToEdit.getLastName(),
+					personToEdit.getMiddleName(), personToEdit.BirthDateFormated() } };
+
+			model = new DefaultTableModel(data, columnNames);
+			editPersonTable = new JTable(model);
+
+			Action action = new AbstractAction() {
+				private static final long serialVersionUID = 1L;
+
+				public void actionPerformed(ActionEvent e) {
+					TableCellListener tcl = (TableCellListener) e.getSource();
+					int columnIndex = tcl.getColumn();
+
+					System.out.println("Edited columns:");
+					System.out.println("Row   : " + tcl.getRow());
+					System.out.println("Column: " + tcl.getColumn());
+					System.out.println("Column Name: " + model.getColumnName(tcl.getColumn()));
+					System.out.println("Old   : " + tcl.getOldValue());
+					System.out.println("New   : " + tcl.getNewValue());
+
+					Object value = "??";
+
+					switch (columnIndex) {
+					case 0:
+						personToEdit.setId((Integer) tcl.getNewValue());
+						System.out.println("Changed : " + personToEdit.getId());
+						break;
+					case 1:
+						personToEdit.setFirstName((String) tcl.getNewValue());
+						System.out.println("Changed : " + personToEdit.getFirstName());
+						break;
+					case 2:
+						personToEdit.setLastName((String) tcl.getNewValue());
+						System.out.println("Changed : " + personToEdit.getLastName());
+						break;
+					case 3:
+						personToEdit.setMiddleName((String) tcl.getNewValue());
+						System.out.println("Changed : " + personToEdit.getMiddleName());
+						break;
+					case 4:
+						personToEdit.setBirthDate((Date)tcl.getNewValue());
+						System.out.println("Changed : " + personToEdit.BirthDateFormated());
+						break;
+					}
+				}
+			};
+			TableCellListener tcl = new TableCellListener(editPersonTable, action);
+
 			JScrollPane jsPane = new JScrollPane(editPersonTable);
 			setLayout(new BorderLayout());
 			setPreferredSize(new Dimension(600, 100));
+
 			add(jsPane, BorderLayout.CENTER);
-			add(field, BorderLayout.NORTH);
-			add(okButton, BorderLayout.SOUTH);
+			JPanel buttonPanel = new JPanel();
+			add(buttonPanel, BorderLayout.SOUTH);
+			buttonPanel.setLayout(new BorderLayout());
+			buttonPanel.add(okButton, BorderLayout.CENTER);
+			buttonPanel.add(cancelButton, BorderLayout.EAST);
+			buttonPanel.add(field, BorderLayout.SOUTH);
 
 		}
 	}
@@ -220,7 +296,7 @@ class MyDialogPanel extends JPanel {
 	public void setFieldText(String text) {
 		field.setText(text);
 	}
-	
+
 	public Person getPersonToEdit() {
 		return personToEdit;
 	}
@@ -231,6 +307,13 @@ class MyDialogPanel extends JPanel {
 
 	// This button's action is simply to dispose of the JDialog.
 	private void okButtonAction() {
+		Window win = SwingUtilities.getWindowAncestor(this);
+		if (win != null) {
+			win.dispose();
+		}
+	}
+
+	private void cancelButtonAction() {
 		Window win = SwingUtilities.getWindowAncestor(this);
 		if (win != null) {
 			win.dispose();
