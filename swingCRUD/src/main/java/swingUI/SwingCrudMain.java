@@ -215,8 +215,7 @@ class MyDialogPanel extends JPanel {
 		personToEdit = mainPanel.getSelectedPerson();
 		if (personToEdit != null) {
 			// override model - editable = true
-			// personModel = new EditTableModel(Arrays.asList(personToEdit),
-			// mainPanel.getColumnNames());
+			 personModel = new EditTableModel(Arrays.asList(personToEdit), mainPanel.getColumnNames());
 			/*
 			 * { private static final long serialVersionUID =
 			 * -9022588423527915638L;
@@ -224,12 +223,15 @@ class MyDialogPanel extends JPanel {
 			 * @Override public boolean isCellEditable(int rowIndex, int
 			 * columnIndex) { return true; } };
 			 */
-			String[] columnNames = { "Id", "First Name", "Last Name", "Middle Name", "Date of Birth" };
+			
+			 /*
+			 * String[] columnNames = { "Id", "First Name", "Last Name", "Middle Name", "Date of Birth" };
 			Object[][] data = { { personToEdit.getId(), personToEdit.getFirstName(), personToEdit.getLastName(),
 					personToEdit.getMiddleName(), personToEdit.BirthDateFormated() } };
 
 			model = new DefaultTableModel(data, columnNames);
-			editPersonTable = new JTable(model);
+			*/
+			editPersonTable = new JTable(personModel);
 
 			Action action = new AbstractAction() {
 				private static final long serialVersionUID = 1L;
@@ -245,7 +247,7 @@ class MyDialogPanel extends JPanel {
 					System.out.println("Old   : " + tcl.getOldValue());
 					System.out.println("New   : " + tcl.getNewValue());
 
-					Object value = "??";
+					//Object value = "??";
 
 					switch (columnIndex) {
 					case 0:
@@ -271,6 +273,7 @@ class MyDialogPanel extends JPanel {
 					}
 				}
 			};
+			
 			TableCellListener tcl = new TableCellListener(editPersonTable, action);
 
 			JScrollPane jsPane = new JScrollPane(editPersonTable);
