@@ -14,7 +14,7 @@ public class App
         System.out.println( "Hello World!" );
        
         PersonService personService = new PersonService();
-        /*
+  
 		Person person1 = new Person(4, "Fyodor", "Dostoevsky", "M.", new Date(1966, 10, 8));
 		Person person2 = new Person(8, "Geo", "Meo", "", new Date(1986, 10, 8));
 		Person person3 = new Person(9, "Isto", "Nov", "I.", new Date(1969, 10, 8));
@@ -23,6 +23,8 @@ public class App
 		personService.persist(person1);
 		personService.persist(person2);
 		personService.persist(person3);
+		
+	      /*
 		List<Person> personsLs1 = personService.findAll();
 		System.out.println("Persons Persisted are :");
 		for (Person p : personsLs1) {
@@ -61,6 +63,8 @@ public class App
 		
 		
 		System.out.println("*** DeleteAll - start ***");
+
+		
 		/*personService.deleteAll();
 		System.out.println("Persons found are now " + personService.findAll().size());
 		System.out.println("*** DeleteAll - end ***");
