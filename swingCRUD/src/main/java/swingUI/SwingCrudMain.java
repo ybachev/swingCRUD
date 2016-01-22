@@ -1,14 +1,18 @@
 package swingUI;
 
+import java.awt.BorderLayout;
+import java.awt.Dialog.ModalityType;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.Insets;
 import java.awt.Window;
-import java.awt.BorderLayout;
-import java.awt.Dialog.ModalityType;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAccessor;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -22,17 +26,11 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
-import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
-import javax.swing.event.TableModelEvent;
-import javax.swing.event.TableModelListener;
 import javax.swing.table.DefaultTableModel;
 
 import model.Person;
 import service.PersonService;
-import swingUI.TableCellListener;
 
 public class SwingCrudMain extends JPanel {
 	private static final long serialVersionUID = -9065552749619842231L;
@@ -40,6 +38,7 @@ public class SwingCrudMain extends JPanel {
 	private MyDialogPanel dialogPanel;
 	private JDialog dialog;
 	private Person selectedPerson;
+	private String actionToPerform;
 
 	private static void createAndShowUI() {
 		JFrame frame = new JFrame("Swing CRUD UI - gridbag and table model");
@@ -97,6 +96,12 @@ public class SwingCrudMain extends JPanel {
 		c.gridx = 0; // aligned with button 2
 		c.gridy = 1; // row
 		c.gridwidth = 1;
+		button.setActionCommand("add");
+		button.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				openTableAction(e);
+			}
+		});
 		add(button, c);
 
 		button = new JButton("Edit");
@@ -110,10 +115,10 @@ public class SwingCrudMain extends JPanel {
 		c.gridwidth = 1;
 		button.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				openTableAction();
+				openTableAction(e);
 			}
 		});
-
+		button.setActionCommand("edit");
 		add(button, c);
 
 		button = new JButton("Delete");
@@ -124,6 +129,29 @@ public class SwingCrudMain extends JPanel {
 		c.gridx = 2;
 		c.gridy = 1;
 		c.gridwidth = 1;
+		button.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				int selection = table.getSelectedRow();
+				selectedPerson = personTableModel.getPersonAt(selection);
+				personService.delete(selectedPerson.getId());
+				personTableModel.fireTableDataChanged();
+			}
+		});
+		button.setActionCommand("delete");
+		add(button, c);
+		
+		button = new JButton("Cancel");
+		c.fill = GridBagConstraints.HORIZONTAL;
+		c.ipady = 0;
+		c.weighty = 0;
+		c.gridx = 3;
+		c.gridy = 1;
+		c.gridwidth = 1;
+		button.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				 System.exit(0);
+			}
+		});
 		add(button, c);
 
 		field = new JTextField();
@@ -140,18 +168,31 @@ public class SwingCrudMain extends JPanel {
 
 	}
 
-	private void openTableAction() {
+	private void openTableAction(ActionEvent e) {
 		int selection = table.getSelectedRow();
 		selection = table.convertRowIndexToModel(selection);
-		selectedPerson = personTableModel.getPersonAt(selection);
-		System.out.println("openTableAction : " + selectedPerson.toString());
+
+		String dialogTitle = "";
+		// System.out.println("openTableAction : " + selectedPerson.toString());
+
+		if ("edit".equals(e.getActionCommand())) {
+			setActionToPerform("edit");
+			// ToDo add check for selection !!!
+			selectedPerson = personTableModel.getPersonAt(selection);
+			dialogTitle = "Edit Person";
+		}
+		if ("add".equals(e.getActionCommand())) {
+			setActionToPerform("add");
+			dialogTitle = "Add New Person";
+			selectedPerson = new Person("Change", "Change", "Change", new Date(3866108));
+		}
 
 		dialogPanel = new MyDialogPanel(this);
 		// lazy creation of the JDialog
 		if (dialog == null) {
 			Window win = SwingUtilities.getWindowAncestor(this);
 			if (win != null) {
-				dialog = new JDialog(win, "Edit Person", ModalityType.APPLICATION_MODAL);
+				dialog = new JDialog(win, dialogTitle, ModalityType.APPLICATION_MODAL);
 				dialog.getContentPane().add(dialogPanel);
 				dialogPanel.setFieldText(selectedPerson.toString());
 				dialogPanel.setPersonToEdit(selectedPerson);
@@ -168,6 +209,10 @@ public class SwingCrudMain extends JPanel {
 		personTableModel.fireTableDataChanged();
 	}
 
+	public PersonService getPersonService() {
+		return personService;
+	}
+
 	public Person getSelectedPerson() {
 		return selectedPerson;
 	}
@@ -179,6 +224,14 @@ public class SwingCrudMain extends JPanel {
 	public List<String> getColumnNames() {
 		return columnNames;
 	}
+
+	public String getActionToPerform() {
+		return actionToPerform;
+	}
+
+	private void setActionToPerform(String actionToPerform) {
+		this.actionToPerform = actionToPerform;
+	}
 }
 
 class MyDialogPanel extends JPanel {
@@ -187,9 +240,11 @@ class MyDialogPanel extends JPanel {
 	private SwingCrudMain mainPanel;
 	private JTextField field = new JTextField();
 	private JTable editPersonTable;
-	private PersonTableModel personModel;
+	// private PersonTableModel personModel;
 	DefaultTableModel model;
 	private Person personToEdit;
+
+	PersonService personService;
 
 	private JButton okButton = new JButton("OK");
 	private JButton cancelButton = new JButton("Cancel");
@@ -212,83 +267,125 @@ class MyDialogPanel extends JPanel {
 			}
 		});
 
-		personToEdit = mainPanel.getSelectedPerson();
-		if (personToEdit != null) {
-			// override model - editable = true
-			 personModel = new EditTableModel(Arrays.asList(personToEdit), mainPanel.getColumnNames());
-			/*
-			 * { private static final long serialVersionUID =
-			 * -9022588423527915638L;
-			 * 
-			 * @Override public boolean isCellEditable(int rowIndex, int
-			 * columnIndex) { return true; } };
-			 */
-			
-			 /*
-			 * String[] columnNames = { "Id", "First Name", "Last Name", "Middle Name", "Date of Birth" };
-			Object[][] data = { { personToEdit.getId(), personToEdit.getFirstName(), personToEdit.getLastName(),
-					personToEdit.getMiddleName(), personToEdit.BirthDateFormated() } };
-
-			model = new DefaultTableModel(data, columnNames);
-			*/
-			editPersonTable = new JTable(personModel);
-
-			Action action = new AbstractAction() {
-				private static final long serialVersionUID = 1L;
-
-				public void actionPerformed(ActionEvent e) {
-					TableCellListener tcl = (TableCellListener) e.getSource();
-					int columnIndex = tcl.getColumn();
-
-					System.out.println("Edited columns:");
-					System.out.println("Row   : " + tcl.getRow());
-					System.out.println("Column: " + tcl.getColumn());
-					System.out.println("Column Name: " + model.getColumnName(tcl.getColumn()));
-					System.out.println("Old   : " + tcl.getOldValue());
-					System.out.println("New   : " + tcl.getNewValue());
-
-					//Object value = "??";
-
-					switch (columnIndex) {
-					case 0:
-						personToEdit.setId((Integer) tcl.getNewValue());
-						System.out.println("Changed : " + personToEdit.getId());
-						break;
-					case 1:
-						personToEdit.setFirstName((String) tcl.getNewValue());
-						System.out.println("Changed : " + personToEdit.getFirstName());
-						break;
-					case 2:
-						personToEdit.setLastName((String) tcl.getNewValue());
-						System.out.println("Changed : " + personToEdit.getLastName());
-						break;
-					case 3:
-						personToEdit.setMiddleName((String) tcl.getNewValue());
-						System.out.println("Changed : " + personToEdit.getMiddleName());
-						break;
-					case 4:
-						personToEdit.setBirthDate((Date)tcl.getNewValue());
-						System.out.println("Changed : " + personToEdit.BirthDateFormated());
-						break;
-					}
-				}
-			};
-			
-			TableCellListener tcl = new TableCellListener(editPersonTable, action);
-
-			JScrollPane jsPane = new JScrollPane(editPersonTable);
-			setLayout(new BorderLayout());
-			setPreferredSize(new Dimension(600, 100));
-
-			add(jsPane, BorderLayout.CENTER);
-			JPanel buttonPanel = new JPanel();
-			add(buttonPanel, BorderLayout.SOUTH);
-			buttonPanel.setLayout(new BorderLayout());
-			buttonPanel.add(okButton, BorderLayout.CENTER);
-			buttonPanel.add(cancelButton, BorderLayout.EAST);
-			buttonPanel.add(field, BorderLayout.SOUTH);
-
+		if ("add".equals(mainPanel.getActionToPerform())) {
+			personToEdit = new Person("Change", "Change", "Change", new Date(3866108));
+			System.out.println("MyDialogConstructor : " + personToEdit.toString());
+		} else {
+			personToEdit = mainPanel.getSelectedPerson();
 		}
+
+		personService = mainPanel.getPersonService();
+
+		// can't make it to work with AbstractTableModel personModel = new
+		// EditTableModel(Arrays.asList(personToEdit),
+		// mainPanel.getColumnNames());
+		// so I'm using DefaultTableModel - model
+
+		// override model - editable = true
+		model = new DefaultTableModel() {
+			private static final long serialVersionUID = -8391638682140976961L;
+
+			@Override
+			public boolean isCellEditable(int rowIndex, int columnIndex) {
+				switch (columnIndex) {
+                case 0:
+                    return false;
+                default:
+                    return true;
+				}
+			}
+		};
+
+		String[] columnNames = { "Id", "First Name", "Last Name", "Middle Name", "Date of Birth" };
+		Object[][] data = { { personToEdit.getId(), personToEdit.getFirstName(), personToEdit.getLastName(),
+				personToEdit.getMiddleName(), personToEdit.BirthDateFormated() } };
+
+		model = new DefaultTableModel(data, columnNames);
+		editPersonTable = new JTable(model){
+			private static final long serialVersionUID = -4990635976009842460L;
+
+			@Override
+			public boolean isCellEditable(int rowIndex, int columnIndex) {
+				switch (columnIndex) {
+                case 0:
+                    return false;
+                default:
+                    return true;
+				}
+			}
+		};
+
+		Action action = new AbstractAction() {
+			private static final long serialVersionUID = 1L;
+
+			public void actionPerformed(ActionEvent e) {
+				TableCellListener tcl = (TableCellListener) e.getSource();
+				int columnIndex = tcl.getColumn();
+
+				System.out.println("Edited columns:");
+				System.out.println("Row   : " + tcl.getRow());
+				System.out.println("Column: " + tcl.getColumn());
+				System.out.println("Column Name: " + model.getColumnName(tcl.getColumn()));
+				System.out.println("Old   : " + tcl.getOldValue());
+				System.out.println("New   : " + tcl.getNewValue());
+
+				// Object value = "??";
+
+				switch (columnIndex) {
+				case 0:
+					personToEdit.setId((Integer) tcl.getNewValue());
+					System.out.println("Changed : " + personToEdit.getId());
+					break;
+				case 1:
+					personToEdit.setFirstName((String) tcl.getNewValue());
+					System.out.println("Changed : " + personToEdit.getFirstName());
+					break;
+				case 2:
+					personToEdit.setLastName((String) tcl.getNewValue());
+					System.out.println("Changed : " + personToEdit.getLastName());
+					break;
+				case 3:
+					personToEdit.setMiddleName((String) tcl.getNewValue());
+					System.out.println("Changed : " + personToEdit.getMiddleName());
+					break;
+				case 4:
+					// hate code like this
+					SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+					String strDate = (String) tcl.getNewValue();
+					Date date = null;
+					try {
+						date = sdf.parse(strDate);
+					} catch (ParseException e1) {
+						e1.printStackTrace();
+					}
+					personToEdit.setBirthDate(date);
+					break;
+				}
+
+				Person per = personService.findById(personToEdit.getId());
+				if (per == null) {
+					personService.persist(personToEdit);
+				} else {
+					personService.update(personToEdit);
+				}
+
+			}
+		};
+
+		TableCellListener tcl = new TableCellListener(editPersonTable, action);
+
+		JScrollPane jsPane = new JScrollPane(editPersonTable);
+		setLayout(new BorderLayout());
+		setPreferredSize(new Dimension(600, 100));
+
+		add(jsPane, BorderLayout.CENTER);
+		JPanel buttonPanel = new JPanel();
+		add(buttonPanel, BorderLayout.SOUTH);
+		buttonPanel.setLayout(new BorderLayout());
+		buttonPanel.add(okButton, BorderLayout.CENTER);
+		buttonPanel.add(cancelButton, BorderLayout.EAST);
+		buttonPanel.add(field, BorderLayout.SOUTH);
+
 	}
 
 	// to allow outside classes to get the text held by the JTextField

@@ -5,6 +5,8 @@ import java.util.Date;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
@@ -21,10 +23,16 @@ public class Person {
 	private String middleName;
 	private Date birthDate;
 
-	public Person() {
-
+	public Person() {}
+	
+	public Person(String firstName, String lastName, String middleName, Date birthDate) {
+		super();
+		this.firstName = firstName;
+		this.lastName = lastName;
+		this.middleName = middleName;
+		this.birthDate = birthDate;
 	}
-
+	
 	public Person(int id, String firstName, String lastName, String middleName, Date birthDate) {
 		super();
 		this.id = id;
@@ -33,9 +41,13 @@ public class Person {
 		this.middleName = middleName;
 		this.birthDate = birthDate;
 	}
+	
+	public Person(Person person) {
+		this(person.firstName, person.lastName, person.lastName, person.birthDate);
+	}
 
 	@Id
-	//@GeneratedValue
+	@GeneratedValue(strategy=GenerationType.AUTO)
 	public int getId() {
 		return id;
 	}

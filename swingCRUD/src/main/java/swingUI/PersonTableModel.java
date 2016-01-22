@@ -30,7 +30,8 @@ public class PersonTableModel extends AbstractTableModel {
 	public int getColumnCount() {
 		return columnNames.size();
 	}
-
+	
+	
 	public Object getValueAt(int rowIndex, int columnIndex) {
 	      Object value = "??";
 	        Person person = personsList.get(rowIndex);
